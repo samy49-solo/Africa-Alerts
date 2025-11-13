@@ -94,20 +94,17 @@ COUNTRIES = {
 # ===================== Règles de sévérité (enrichies) =====================
 SEVERITY_WORDS = {
     "critical": [
-        # Coups d'État / conflits majeurs
         "coup d'etat", "coup d’état", "coup", "overthrow", "putsch",
         "martial law", "state of emergency", "état d'urgence", "etat d'urgence",
         "insurrection", "uprising", "civil war", "guerre civile",
         "armed clashes", "affrontements armés", "massacre", "mass killing",
         "genocide", "terror attack", "attentat", "suicide bombing",
         "border clashes", "affrontements frontaliers",
-        # Défaut / crise bancaire
         "sovereign default", "default souverain", "défaut souverain",
         "debt standstill", "suspension of payments", "suspension de paiements",
         "bank run", "ruée bancaire", "capital controls", "contrôles de capitaux",
     ],
     "warning": [
-        # Sanctions / IFI / notation
         "sanctions", "sanction", "embargo", "asset freeze", "freeze assets",
         "blacklist", "liste noire",
         "imf program", "imf deal", "imf talks", "mission imf", "fmi",
@@ -116,19 +113,15 @@ SEVERITY_WORDS = {
         "outlook negative", "perspective négative", "credit watch negative",
         "spread widening", "spreads widened", "cds spike", "cds widened",
         "debt restructuring", "restructuration de la dette", "haircut",
-        # FX / inflation / pénuries
         "devaluation", "dévaluation", "currency crash", "currency shortage",
         "fx shortage", "foreign exchange shortage", "parallel market", "black market rate",
         "hyperinflation", "runaway inflation",
-        # Protests / grèves
         "violent protest", "protesters clash", "mass protest", "émeutes", "riots",
         "nationwide strike", "general strike", "grève générale", "curfew", "couvre-feu",
-        # Energie / logistique
         "fuel shortage", "diesel shortage", "power cuts", "blackout", "load shedding",
         "food shortage", "supply disruption", "port congestion",
     ],
     "watch": [
-        # Politique / budget / BC
         "cabinet reshuffle", "remaniement", "government reshuffle",
         "election dispute", "contested election", "vote irregularities", "fraude électorale",
         "parliament dissolved", "dissolution du parlement",
@@ -136,11 +129,8 @@ SEVERITY_WORDS = {
         "subsidy reform", "subsidy removal", "fuel price hike", "tax hike",
         "policy rate hike", "emergency rate", "capital adequacy concerns",
         "fx auction", "multiple exchange rates",
-        # Sécurité
         "insurgent", "militia", "jihadist", "terror cell", "kidnapping",
-        # Catastrophes naturelles
         "flooding", "flash floods", "drought", "landslide", "cyclone", "earthquake",
-        # Autres signaux
         "political crisis", "talks stall", "talks collapse",
     ],
 }
@@ -148,18 +138,15 @@ SEV_RX = {lvl: re.compile("|".join(map(re.escape, words)), re.I) for lvl, words 
 
 # ===================== Filtre thématique politique/économie =====================
 TOPIC_INCLUDE_WORDS = [
-    # Institutions politiques
     "government", "gouvernement",
     "president", "président",
     "prime minister", "premier ministre",
     "parliament", "parlement",
     "senate", "assembly", "assemblée nationale",
     "cabinet", "ministry", "ministère",
-    # Elections / protest
     "election", "vote", "referendum",
     "protest", "demonstration", "manifestation", "riot", "émeute",
     "sanction", "sanctions",
-    # Macro / budget / dette
     "imf", "fmi", "world bank", "banque mondiale",
     "afdb", "african development bank",
     "central bank", "banque centrale",
@@ -168,10 +155,8 @@ TOPIC_INCLUDE_WORDS = [
     "budget", "fiscal", "tax", "impôt", "déficit", "deficit",
     "debt", "dette", "sovereign", "eurobond", "bond",
     "cds", "spread", "rating", "notation",
-    # Balance des paiements / fx / commerce
     "currency", "fx", "devaluation", "dévaluation", "reserves", "réserves de change",
     "balance of payments", "current account", "trade deficit", "export", "import", "tariff",
-    # Conflits / sécurité
     "conflict", "ceasefire", "truce", "insurgent", "militia", "terror", "attaque",
     "border", "frontière",
 ]
@@ -318,15 +303,21 @@ else:
                 "watch": "#2b8cbe",
                 "info": "#6c757d",
             }[row["severity"]]
+
+            # conversion robuste de la date pour l'affichage de la carte
+            pub = pd.to_datetime(row["published"], errors="coerce", utc=True)
+            if pd.isna(pub):
+                pub_str = ""
+            else:
+                pub_str = pub.strftime("%Y-%m-%d %H:%M UTC")
+
             with st.container(border=True):
                 st.markdown(
                     f"**{row['country']}** · <span style='color:{color};font-weight:700'>{row['severity'].upper()}</span>",
                     unsafe_allow_html=True,
                 )
                 st.write(row["title"])
-                st.caption(
-                    f"{row['source']} · {pd.to_datetime(row['published']).strftime('%Y-%m-%d %H:%M UTC')}"
-                )
+                st.caption(f"{row['source']} · {pub_str}")
                 if hasattr(st, "link_button"):
                     st.link_button("Ouvrir", row["link"])
                 else:
@@ -335,7 +326,9 @@ else:
 
     st.subheader("Liste complète")
     tab = view[["published", "country", "severity", "source", "title", "link"]].copy()
-    tab["published"] = pd.to_datetime(tab["published"]).dt.strftime("%Y-%m-%d %H:%M UTC")
+    # conversion robuste pour le tableau complet
+    pub_tab = pd.to_datetime(tab["published"], errors="coerce", utc=True)
+    tab["published"] = pub_tab.dt.strftime("%Y-%m-%d %H:%M UTC").fillna("")
     st.dataframe(tab, use_container_width=True)
 
 # ===================== Auto-refresh =====================
